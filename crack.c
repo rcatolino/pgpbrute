@@ -19,6 +19,7 @@
 
 #define MQNAME "/pgpcrack-mq-9e74305fffc8"
 
+static int signal_caught = 0;
 static unsigned int opt_fork = 1;
 
 static GOptionEntry opt_entries[] =
@@ -27,7 +28,11 @@ static GOptionEntry opt_entries[] =
   { NULL}
 };
 
-int init_options(int argc, char *argv[], gpgme_data_t *pgp_data) {
+static void handler(int signum) {
+  signal_caught = 1;
+}
+
+static int init_options(int argc, char *argv[], gpgme_data_t *pgp_data) {
   GError *error = NULL;
   GOptionContext *opt_context;
   FILE *pgp;
@@ -61,11 +66,11 @@ int init_options(int argc, char *argv[], gpgme_data_t *pgp_data) {
   return 0;
 }
 
-int decipher(gpgme_data_t passphrase, gpgme_data_t data) {
+static int decipher(gpgme_data_t passphrase, gpgme_data_t data) {
   return -1;
 }
 
-int worker(gpgme_data_t pgp_data) {
+static int worker(gpgme_data_t pgp_data) {
   mqd_t queue;
   size_t buff_size = 8192;
   char buffer[buff_size+1];
@@ -99,7 +104,7 @@ int worker(gpgme_data_t pgp_data) {
   return 0;
 }
 
-void cleanup(pid_t *workers, mqd_t queue) {
+static void cleanup(pid_t *workers, mqd_t queue) {
   int child_ret;
   mq_close(queue);
   mq_unlink(MQNAME);
@@ -118,7 +123,10 @@ int main(int argc, char *argv[]) {
   pid_t *workers = NULL;
   gpgme_data_t pgp_data;
   mqd_t queue;
+  size_t buff_size = 256;
+  char buffer[buff_size];
   struct mq_attr attrs;
+  struct sigaction sa;
 
   if (init_options(argc, argv, &pgp_data) == -1) {
     return -1;
@@ -154,7 +162,31 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  sleep(4);
+  sa.sa_handler = handler;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = 0;
+  if (sigaction(SIGINT, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1) {
+    perror("Error installing signal handler ");
+    cleanup(workers, queue);
+    return -1;
+  }
+
+  while (!signal_caught) {
+    size_t len;
+    if (fgets(buffer, buff_size, stdin) == NULL) {
+      break;
+    }
+
+    // beurk.
+    len = strlen(buffer);
+    if (buffer[len-1] == '\n') {
+      len--;
+      buffer[len] = '\0';
+    }
+
+    mq_send(queue, buffer, len+1, 1);
+  }
+
   printf("Cleaning up\n");
   cleanup(workers, queue);
   return 0;
