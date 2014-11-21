@@ -1,7 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <gio/gio.h>
-#include <gpgme.h>
 #include <mqueue.h>
 #include <signal.h>
 #include <stdio.h>
@@ -32,7 +31,7 @@ static void handler(int signum) {
   signal_caught = 1;
 }
 
-static int init_options(int argc, char *argv[], gpgme_data_t *pgp_data) {
+static int init_options(int argc, char *argv[]) {
   GError *error = NULL;
   GOptionContext *opt_context;
   FILE *pgp;
@@ -58,19 +57,10 @@ static int init_options(int argc, char *argv[], gpgme_data_t *pgp_data) {
     return -1;
   }
 
-  if (gpgme_data_new_from_stream(pgp_data, pgp) != GPG_ERR_NO_ERROR) {
-    g_printerr("Error creating data buffer, not enought memory.\n");
-    return -1;
-  }
-
   return 0;
 }
 
-static int decipher(gpgme_data_t passphrase, gpgme_data_t data) {
-  return -1;
-}
-
-static int worker(gpgme_data_t pgp_data) {
+static int worker() {
   mqd_t queue;
   size_t buff_size = 8192;
   char buffer[buff_size+1];
@@ -121,14 +111,13 @@ static void cleanup(pid_t *workers, mqd_t queue) {
 
 int main(int argc, char *argv[]) {
   pid_t *workers = NULL;
-  gpgme_data_t pgp_data;
   mqd_t queue;
   size_t buff_size = 256;
   char buffer[buff_size];
   struct mq_attr attrs;
   struct sigaction sa;
 
-  if (init_options(argc, argv, &pgp_data) == -1) {
+  if (init_options(argc, argv) == -1) {
     return -1;
   }
 
@@ -150,7 +139,7 @@ int main(int argc, char *argv[]) {
     pid_t ret = fork();
     switch(ret) {
       case 0:
-        exit(worker(pgp_data));
+        exit(worker());
       case -1:
         perror("Error in fork ");
         cleanup(workers, queue);
