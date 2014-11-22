@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "pgp.h"
@@ -194,6 +195,9 @@ int main(int argc, char *argv[]) {
   struct pgp_data pdata;
   struct mq_attr attrs;
   struct sigaction sa;
+  uint64_t tried = 0;
+  struct timespec time_start;
+  struct timespec time_end;
 
   if (init_options(argc, argv, &pdata) == -1) {
     return -1;
@@ -250,6 +254,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  clock_gettime(CLOCK_MONOTONIC, &time_start);
   while (!signal_caught) {
     size_t len;
     if (fgets(buffer, buff_size, stdin) == NULL) {
@@ -263,11 +268,15 @@ int main(int argc, char *argv[]) {
       buffer[len] = '\0';
     }
     debug("sending passphrase %s.\n", buffer);
+    tried++;
 
     mq_send(queue, buffer, len+1, 1);
   }
 
   debug("Cleaning up\n");
+  clock_gettime(CLOCK_MONOTONIC, &time_end);
   cleanup(workers, queue);
+  printf("Tried %lu password in %lu seconds.\n", tried, time_end.tv_sec - time_start.tv_sec);
+  printf("Rate : %lu password/second.\n", tried / (time_end.tv_sec - time_start.tv_sec));
   return 0;
 }
