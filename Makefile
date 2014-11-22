@@ -11,7 +11,7 @@ DEFINES:=-D DEBUG
 EXE:=crack
 
 LIBS:=-lglib-2.0 -lrt
-OBJ:=crack.o
+OBJ:=crack.o pgp.o
 
 .PHONY: clean
 
@@ -20,7 +20,7 @@ $(EXE): $(OBJ)
 	$(LD) -o $(EXE) $(LDFLAGS) $(OBJ) $(LIBS)
 	@echo done
 
-%.o : %.c
+%.o : %.c *.h
 	@echo building $@ ...
 	$(CC) $(CCFLAGS) -c $(DEFINES) $(INCLUDES) $<
 	@echo done

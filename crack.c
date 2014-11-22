@@ -10,6 +10,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "pgp.h"
+
 #ifdef DEBUG
 #define debug(...) printf(__VA_ARGS__)
 #else
@@ -31,7 +33,7 @@ static void handler(int signum) {
   signal_caught = 1;
 }
 
-static int init_options(int argc, char *argv[]) {
+static int init_options(int argc, char *argv[], struct pgp_data *pdata) {
   GError *error = NULL;
   GOptionContext *opt_context;
   FILE *pgp;
@@ -57,7 +59,7 @@ static int init_options(int argc, char *argv[]) {
     return -1;
   }
 
-  return 0;
+  return parse_pgp(pgp, pdata);
 }
 
 static int worker() {
@@ -114,10 +116,11 @@ int main(int argc, char *argv[]) {
   mqd_t queue;
   size_t buff_size = 256;
   char buffer[buff_size];
+  struct pgp_data pdata;
   struct mq_attr attrs;
   struct sigaction sa;
 
-  if (init_options(argc, argv) == -1) {
+  if (init_options(argc, argv, &pdata) == -1) {
     return -1;
   }
 
