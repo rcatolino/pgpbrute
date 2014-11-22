@@ -30,17 +30,17 @@
 #define SYM_KEY_ENC_MDC_DATA 18
 
 struct sym_algo algos[] = {
-  {GCRY_CIPHER_NONE, 0, "Plaintext"},
-  {GCRY_CIPHER_IDEA, 16, "IDEA"},
-  {GCRY_CIPHER_3DES, 24, "TripleDES"},
-  {GCRY_CIPHER_CAST5, 16, "CAST5"},
-  {GCRY_CIPHER_BLOWFISH, 16, "Blowfish"},
-  {GCRY_CIPHER_SAFER_SK128, 16, "Reserved"},
-  {GCRY_CIPHER_DES_SK, 0, "Reserved"},
-  {GCRY_CIPHER_AES128, 16, "AES 128"},
-  {GCRY_CIPHER_AES192, 24, "AES 192"},
-  {GCRY_CIPHER_AES256, 32, "AES 256"},
-  {GCRY_CIPHER_TWOFISH, 32, "Twofish"},
+  {GCRY_CIPHER_NONE, 0, 0, "Plaintext"},
+  {GCRY_CIPHER_IDEA, 16, 8, "IDEA"},
+  {GCRY_CIPHER_3DES, 24, 8, "TripleDES"},
+  {GCRY_CIPHER_CAST5, 16, 8, "CAST5"},
+  {GCRY_CIPHER_BLOWFISH, 16, 8, "Blowfish"},
+  {GCRY_CIPHER_SAFER_SK128, 16, 8, "Reserved"},
+  {GCRY_CIPHER_DES_SK, 0, 0, "Reserved"},
+  {GCRY_CIPHER_AES128, 16, 16, "AES 128"},
+  {GCRY_CIPHER_AES192, 24, 16, "AES 192"},
+  {GCRY_CIPHER_AES256, 32, 16, "AES 256"},
+  {GCRY_CIPHER_TWOFISH, 32, 16, "Twofish"},
 };
 
 struct hash_algo halgos[] = {

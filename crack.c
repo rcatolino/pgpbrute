@@ -24,7 +24,7 @@
 
 #define MQNAME "/pgpcrack-mq-9e74305fffc8"
 #define MAX_KEY_LEN 64
-#define OUTPUT_BUF_LEN 64
+#define MAX_OUTPUT_BUF_LEN 64
 
 static int signal_caught = 0;
 static unsigned int opt_fork = 1;
@@ -73,10 +73,14 @@ static int worker(struct pgp_data *pdata) {
   size_t buff_size = 8192;
   char keybuffer[MAX_KEY_LEN];
   char buffer[buff_size+1];
-  unsigned char output_buffer[OUTPUT_BUF_LEN];
+  int blocksize = algos[pdata->key_fmt.algorithm].blocksize;
+  size_t keysize = algos[pdata->key_fmt.algorithm].keysize;
+  char nulliv[blocksize];
+  unsigned char output_buffer[2*blocksize];
   gpg_error_t gerror;
   gcry_cipher_hd_t cipher;
 
+  memset(nulliv, 0, blocksize);
   memset(keybuffer, 0, MAX_KEY_LEN);
   if ((gerror = gcry_cipher_open(&cipher, algos[pdata->key_fmt.algorithm].gcry_equiv,
                                  GCRY_CIPHER_MODE_CFB, GCRY_CIPHER_ENABLE_SYNC)) != 0) {
@@ -120,14 +124,23 @@ static int worker(struct pgp_data *pdata) {
     if ((gerror = gcry_kdf_derive(buffer, ret-1, GCRY_KDF_ITERSALTED_S2K,
                                   halgos[pdata->s2k_fmt.algorithm].gcry_equiv,
                                   pdata->s2k_fmt.salt, 8, pdata->s2k_count,
-                                  algos[pdata->key_fmt.algorithm].keysize,
-                                  keybuffer)) != 0) {
+                                  keysize, keybuffer)) != 0) {
       gcry_perror(gerror, "Failure");
       return -1;
     }
 
-    if ((gerror = gcry_cipher_decrypt(cipher, output_buffer, OUTPUT_BUF_LEN,
-                                      pdata->enc_data, OUTPUT_BUF_LEN)) != 0) {
+    if ((gerror = gcry_cipher_setkey(cipher, keybuffer, keysize)) != 0) {
+      gcry_perror(gerror, "Failure setting cipher key");
+      return -1;
+    }
+
+    if ((gerror = gcry_cipher_setiv(cipher, nulliv, blocksize)) != 0) {
+      gcry_perror(gerror, "Failure setting null iv");
+      return -1;
+    }
+
+    if ((gerror = gcry_cipher_decrypt(cipher, output_buffer, blocksize+2,
+                                      pdata->enc_data, blocksize+2)) != 0) {
       gcry_perror(gerror, "Failure decrypting data");
       return -1;
     }
@@ -214,7 +227,8 @@ int main(int argc, char *argv[]) {
   sa.sa_handler = handler;
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = 0;
-  if (sigaction(SIGINT, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1) {
+  if (sigaction(SIGINT, &sa, NULL) == -1 || sigaction(SIGTERM, &sa, NULL) == -1 ||
+      sigaction(SIGCHLD, &sa, NULL) == -1) {
     perror("Error installing signal handler ");
     terminate(workers, queue);
     cleanup(workers, queue);

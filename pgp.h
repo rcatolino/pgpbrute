@@ -9,6 +9,7 @@
 struct sym_algo {
   int gcry_equiv;
   uint8_t keysize;
+  uint8_t blocksize;
   char *name;
 };
 
