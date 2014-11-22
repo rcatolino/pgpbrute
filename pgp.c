@@ -176,23 +176,26 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
       data->s2k_count = 16 + (data->s2k_fmt.count & 15);
       data->s2k_count = data->s2k_count << ((data->s2k_fmt.count >> 4) + 6);
       break;
+    case SYM_KEY_ENC_DATA:
     case SYM_KEY_ENC_MDC_DATA:
-      debug("Symmetrically encrypted data and mdc packet. Reading 0x%x bytes.\n", length);
+      debug("Symmetrically encrypted data packet. Reading 0x%x bytes.\n", length);
       if (length > ENC_BUFFER_SIZE) {
         fprintf(stderr, "Error, unsupported (too big) packet size %u.\n", length);
         return -1;
       }
 
-      if (fread(&sym_version, 1, 1, pgp) != 1) {
-        fprintf(stderr, "Error, unexpected end of pgp file before symmetric version tag.\n");
-        return -1;
-      }
+      if (tag == SYM_KEY_ENC_MDC_DATA) {
+        if (fread(&sym_version, 1, 1, pgp) != 1) {
+          fprintf(stderr, "Error, unexpected end of pgp file before symmetric version tag.\n");
+          return -1;
+        }
 
-      length--;
-      if (sym_version != 1) {
-        fprintf(stderr, "Error, unsupported symmetric data packet version : %hhu.\n",
-                sym_version);
-        return -1;
+        length--;
+        if (sym_version != 1) {
+          fprintf(stderr, "Error, unsupported symmetric data packet version : %hhu.\n",
+                  sym_version);
+          return -1;
+        }
       }
 
       if (fread(&data->enc_data, length, 1, pgp) != 1) {

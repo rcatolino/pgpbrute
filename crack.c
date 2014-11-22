@@ -114,11 +114,11 @@ static int worker(struct pgp_data *pdata) {
     }
 
     if (ret == 1) {
-      printf("No more passphrases to test.\n");
+      debug("No more passphrases to test.\n");
       return 0;
     }
 
-    printf("Received passphrase : %s\n", buffer);
+    debug("Received passphrase : %s\n", buffer);
     if ((gerror = gcry_kdf_derive(buffer, ret-1, GCRY_KDF_ITERSALTED_S2K,
                                   halgos[pdata->s2k_fmt.algorithm].gcry_equiv,
                                   pdata->s2k_fmt.salt, 8, pdata->s2k_count,
@@ -127,14 +127,14 @@ static int worker(struct pgp_data *pdata) {
       return -1;
     }
 
-    if ((gerror = gcry_cipher_setkey(cipher, keybuffer, keysize)) != 0) {
-      gcry_perror(gerror, "Failure setting cipher key");
-      return -1;
-    }
-
     if ((gerror = gcry_cipher_setiv(cipher, NULL, 0)) != 0) {
       // undocumented gcrypt feature : NULL here is treated as a null iv.
       gcry_perror(gerror, "Failure setting null iv");
+      return -1;
+    }
+
+    if ((gerror = gcry_cipher_setkey(cipher, keybuffer, keysize)) != 0) {
+      gcry_perror(gerror, "Failure setting cipher key");
       return -1;
     }
 
@@ -151,7 +151,7 @@ static int worker(struct pgp_data *pdata) {
 
     if (output_buffer[blocksize-2] != output_buffer[blocksize] ||
         output_buffer[blocksize-1] != output_buffer[blocksize+1]) {
-      printf("bad passphrase\n");
+      debug("bad passphrase\n");
     } else {
       printf("FOUND PASSPHRASE : %s\n", buffer);
       return 1;
@@ -171,7 +171,7 @@ static void terminate(pid_t *workers, mqd_t queue) {
 
 static void cleanup(pid_t *workers, mqd_t queue) {
   int child_ret;
-  mq_send(queue, "", 1, 1);
+  mq_timedsend(queue, "", 1, 1, &(struct timespec){0, 0});
   for (int i = 0; i<opt_fork && workers[i] != 0; i++) {
     if (waitpid(workers[i], &child_ret, 0) == -1 && errno == EINTR) {
       i--;
@@ -259,12 +259,12 @@ int main(int argc, char *argv[]) {
       len--;
       buffer[len] = '\0';
     }
-    printf("sending passphrase %s.\n", buffer);
+    debug("sending passphrase %s.\n", buffer);
 
     mq_send(queue, buffer, len+1, 1);
   }
 
-  printf("Cleaning up\n");
+  debug("Cleaning up\n");
   cleanup(workers, queue);
   return 0;
 }

@@ -1,0 +1,31 @@
+#!/usr/bin/bash
+
+ALGOS="IDEA 3DES CAST5 BLOWFISH AES AES192 AES256 TWOFISH"
+HALGOS="MD5 SHA1 RIPEMD160 SHA256 SHA384 SHA512 SHA224"
+CLEARTEXTS="cleartext4 cleartext8 cleartext10 cleartext256 cleartext8196"
+
+dd if=/dev/urandom of=cleartext4 bs=4 count=1 > /dev/null
+dd if=/dev/urandom of=cleartext8 bs=8 count=1 > /dev/null
+dd if=/dev/urandom of=cleartext10 bs=10 count=1 > /dev/null
+dd if=/dev/urandom of=cleartext256 bs=256 count=1 > /dev/null
+dd if=/dev/urandom of=cleartext8196 bs=8192 count=1 > /dev/null
+
+echo -n '' > passphrases
+
+for algo in $ALGOS
+do
+  for halgo in $HALGOS
+  do
+    for cleartext in $CLEARTEXTS
+    do
+      PASS=$(echo ${algo}-${halgo}-${cleartext}.gpg | md5sum | head -c10)
+      echo $PASS >> passphrases
+      gpg --symmetric --output ${algo}-${halgo}-${cleartext}.gpg --cipher-algo $algo\
+        --s2k-digest-algo $halgo --passphrase $PASS --batch $cleartext
+      PASS=$(echo ${algo}-${halgo}-mdc-${cleartext}.gpg | md5sum | head -c10)
+      echo $PASS >> passphrases
+      gpg --symmetric --output ${algo}-${halgo}-mdc-${cleartext}.gpg --cipher-algo $algo\
+        --s2k-digest-algo $halgo --passphrase $PASS --batch $cleartext
+    done
+  done
+done
