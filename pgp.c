@@ -1,3 +1,4 @@
+#include <gcrypt.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -28,33 +29,33 @@
 #define LITERAL 11
 #define SYM_KEY_ENC_MDC_DATA 18
 
-char *algo_str[] = {
- "Plaintext",
- "IDEA",
- "TripleDES",
- "CAST5",
- "Blowfish",
- "Reserved",
- "Reserved",
- "AES 128",
- "AES 192",
- "AES 256",
- "Twofish",
+struct sym_algo algos[] = {
+  {GCRY_CIPHER_NONE, 0, "Plaintext"},
+  {GCRY_CIPHER_IDEA, 16, "IDEA"},
+  {GCRY_CIPHER_3DES, 24, "TripleDES"},
+  {GCRY_CIPHER_CAST5, 16, "CAST5"},
+  {GCRY_CIPHER_BLOWFISH, 16, "Blowfish"},
+  {GCRY_CIPHER_SAFER_SK128, 16, "Reserved"},
+  {GCRY_CIPHER_DES_SK, 0, "Reserved"},
+  {GCRY_CIPHER_AES128, 16, "AES 128"},
+  {GCRY_CIPHER_AES192, 24, "AES 192"},
+  {GCRY_CIPHER_AES256, 32, "AES 256"},
+  {GCRY_CIPHER_TWOFISH, 32, "Twofish"},
 };
 
-char *hash_str[] = {
-  "Reserved",
-  "MD5",
-  "SHA1",
-  "RIPEMD160",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "Reserved",
-  "SHA256",
-  "SHA384",
-  "SHA512",
-  "SHA224",
+struct hash_algo halgos[] = {
+  {GCRY_MD_NONE, "None"},
+  {GCRY_MD_MD5, "MD5"},
+  {GCRY_MD_SHA1, "SHA1"},
+  {GCRY_MD_RMD160, "RIPEMD160"},
+  {-1, "Reserved"},
+  {-1, "Reserved"},
+  {-1, "Reserved"},
+  {-1, "Reserved"},
+  {GCRY_MD_SHA256, "SHA256"},
+  {GCRY_MD_SHA384, "SHA384"},
+  {GCRY_MD_SHA512, "SHA512"},
+  {GCRY_MD_SHA224, "SHA224"},
 };
 
 ssize_t get_new_length(FILE *pgp) {
@@ -146,6 +147,12 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
         return -1;
       }
 
+      if (data->key_fmt.algorithm == 5 || data->key_fmt.algorithm == 6) {
+        fprintf(stderr, "Error, unsupported reserved algorithm number : %hhu.\n",
+                data->key_fmt.algorithm);
+        return -1;
+      }
+
       if (fread(&data->s2k_fmt, sizeof(struct s2k), 1, pgp) != 1) {
         perror("Error reading s2k spec from pgp file ");
         return -1;
@@ -154,6 +161,14 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
       length -= sizeof(struct s2k);
       if (length != 0) {
         fprintf(stderr, "Error, invalid symmetrically encrypted key packet size.\n");
+        return -1;
+      }
+
+      if (data->s2k_fmt.algorithm == 0 || data->key_fmt.algorithm == 4 ||
+          data->key_fmt.algorithm == 5 || data->key_fmt.algorithm == 6 ||
+          data->key_fmt.algorithm == 7) {
+        fprintf(stderr, "Error, unsupported reserved algorithm number : %hhu.\n",
+                data->key_fmt.algorithm);
         return -1;
       }
 

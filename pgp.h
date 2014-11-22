@@ -6,8 +6,19 @@
 
 #define ENC_BUFFER_SIZE 8196
 
-extern char *hash_str[];
-extern char *algo_str[];
+struct sym_algo {
+  int gcry_equiv;
+  uint8_t keysize;
+  char *name;
+};
+
+struct hash_algo {
+  int gcry_equiv;
+  char *name;
+};
+
+extern struct hash_algo halgos[];
+extern struct sym_algo algos[];
 
 struct sym_enc_key {
   uint8_t version;
@@ -16,11 +27,10 @@ struct sym_enc_key {
 };
 
 struct s2k {
-  uint8_t hash_alg;
+  uint8_t algorithm;
   unsigned char salt[8];
   uint8_t count;
 };
-
 
 struct pgp_data {
   struct sym_enc_key key_fmt;

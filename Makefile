@@ -10,7 +10,7 @@ DEFINES:=-D DEBUG
 
 EXE:=crack
 
-LIBS:=-lglib-2.0 -lrt
+LIBS:=-lglib-2.0 -lrt -lgcrypt
 OBJ:=crack.o pgp.o
 
 .PHONY: clean
