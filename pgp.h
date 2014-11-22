@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define ENC_BUFFER_SIZE 8196
+#define ENC_BUFFER_SIZE 256
 
 struct sym_algo {
   int gcry_equiv;

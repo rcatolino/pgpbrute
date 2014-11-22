@@ -66,12 +66,15 @@ static int init_options(int argc, char *argv[], struct pgp_data *pdata) {
     return -1;
   }
 
+  printf("Using libgcrypt %s.\n", gcry_check_version(NULL));
+  gcry_control(GCRYCTL_DISABLE_SECMEM, 0);
+  gcry_control(GCRYCTL_INITIALIZATION_FINISHED, 0);
   return parse_pgp(pgp, pdata);
 }
 
 static int worker(struct pgp_data *pdata) {
   mqd_t queue;
-  size_t buff_size = 8192;
+  size_t buff_size = 256;
   char keybuffer[MAX_KEY_LEN];
   char buffer[buff_size+1];
   int blocksize = algos[pdata->key_fmt.algorithm].blocksize;
@@ -218,7 +221,10 @@ int main(int argc, char *argv[]) {
   }
 
   mq_unlink(MQNAME);
-  if ((queue = mq_open(MQNAME, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, NULL)) == -1) {
+  attrs.mq_flags = 0;
+  attrs.mq_msgsize = 256;
+  attrs.mq_maxmsg = 10;
+  if ((queue = mq_open(MQNAME, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, &attrs)) == -1) {
     perror("Error creating message queue ");
     return -1;
   }
@@ -277,6 +283,6 @@ int main(int argc, char *argv[]) {
   clock_gettime(CLOCK_MONOTONIC, &time_end);
   cleanup(workers, queue);
   printf("Tried %lu password in %lu seconds.\n", tried, time_end.tv_sec - time_start.tv_sec);
-  printf("Rate : %lu password/second.\n", tried / (time_end.tv_sec - time_start.tv_sec));
+  printf("Rate : %lu password/second.\n", tried / (time_end.tv_sec - time_start.tv_sec + 1));
   return 0;
 }

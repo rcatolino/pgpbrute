@@ -180,8 +180,7 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
     case SYM_KEY_ENC_MDC_DATA:
       debug("Symmetrically encrypted data packet. Reading 0x%x bytes.\n", length);
       if (length > ENC_BUFFER_SIZE) {
-        fprintf(stderr, "Error, unsupported (too big) packet size %u.\n", length);
-        return -1;
+        length = ENC_BUFFER_SIZE;
       }
 
       if (tag == SYM_KEY_ENC_MDC_DATA) {
