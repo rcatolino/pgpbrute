@@ -75,12 +75,10 @@ static int worker(struct pgp_data *pdata) {
   char buffer[buff_size+1];
   int blocksize = algos[pdata->key_fmt.algorithm].blocksize;
   size_t keysize = algos[pdata->key_fmt.algorithm].keysize;
-  char nulliv[blocksize];
   unsigned char output_buffer[2*blocksize];
   gpg_error_t gerror;
   gcry_cipher_hd_t cipher;
 
-  memset(nulliv, 0, blocksize);
   memset(keybuffer, 0, MAX_KEY_LEN);
   if ((gerror = gcry_cipher_open(&cipher, algos[pdata->key_fmt.algorithm].gcry_equiv,
                                  GCRY_CIPHER_MODE_CFB, GCRY_CIPHER_ENABLE_SYNC)) != 0) {
@@ -134,7 +132,8 @@ static int worker(struct pgp_data *pdata) {
       return -1;
     }
 
-    if ((gerror = gcry_cipher_setiv(cipher, nulliv, blocksize)) != 0) {
+    if ((gerror = gcry_cipher_setiv(cipher, NULL, 0)) != 0) {
+      // undocumented gcrypt feature : NULL here is treated as a null iv.
       gcry_perror(gerror, "Failure setting null iv");
       return -1;
     }
@@ -143,6 +142,19 @@ static int worker(struct pgp_data *pdata) {
                                       pdata->enc_data, blocksize+2)) != 0) {
       gcry_perror(gerror, "Failure decrypting data");
       return -1;
+    }
+
+    if ((gerror = gcry_cipher_sync(cipher) != 0)) {
+      gcry_perror(gerror, "Failure to sync cipher");
+      return -1;
+    }
+
+    if (output_buffer[blocksize-2] != output_buffer[blocksize] ||
+        output_buffer[blocksize-1] != output_buffer[blocksize+1]) {
+      printf("bad passphrase\n");
+    } else {
+      printf("FOUND PASSPHRASE : %s\n", buffer);
+      return 1;
     }
   }
 

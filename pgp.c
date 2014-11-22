@@ -115,6 +115,7 @@ int get_tag_and_length(uint8_t head, FILE *pgp, uint8_t *tag, uint32_t *length) 
 
 int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
   uint8_t tag = 0;
+  uint8_t sym_version = 0;
   uint32_t length = 0;
 
   if (get_tag_and_length(head, pgp, &tag, &length) == -1) {
@@ -179,6 +180,18 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
       debug("Symmetrically encrypted data and mdc packet. Reading 0x%x bytes.\n", length);
       if (length > ENC_BUFFER_SIZE) {
         fprintf(stderr, "Error, unsupported (too big) packet size %u.\n", length);
+        return -1;
+      }
+
+      if (fread(&sym_version, 1, 1, pgp) != 1) {
+        fprintf(stderr, "Error, unexpected end of pgp file before symmetric version tag.\n");
+        return -1;
+      }
+
+      length--;
+      if (sym_version != 1) {
+        fprintf(stderr, "Error, unsupported symmetric data packet version : %hhu.\n",
+                sym_version);
         return -1;
       }
 
