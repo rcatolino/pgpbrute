@@ -28,6 +28,35 @@
 #define LITERAL 11
 #define SYM_KEY_ENC_MDC_DATA 18
 
+char *algo_str[] = {
+ "Plaintext",
+ "IDEA",
+ "TripleDES",
+ "CAST5",
+ "Blowfish",
+ "Reserved",
+ "Reserved",
+ "AES 128",
+ "AES 192",
+ "AES 256",
+ "Twofish",
+};
+
+char *hash_str[] = {
+  "Reserved",
+  "MD5",
+  "SHA1",
+  "RIPEMD160",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "Reserved",
+  "SHA256",
+  "SHA384",
+  "SHA512",
+  "SHA224",
+};
+
 ssize_t get_new_length(FILE *pgp) {
   uint32_t len = 0;
   uint32_t l2;
@@ -96,7 +125,8 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
       debug("Literal data packet, skipping.\n");
       break;
     case SYM_KEY_ENC_KEY:
-      debug("Symmetrically encrypted key packet, reading 0x%x bytes\n", length);
+      debug("Symmetrically encrypted key packet, reading 0x%x bytes, %lu, %lu\n",
+            length, sizeof(struct s2k), sizeof(struct sym_enc_key));
       if (fread(&data->key_fmt, sizeof(struct sym_enc_key), 1, pgp) != 1) {
         perror("Error reading key spec from pgp file ");
         return -1;
@@ -127,6 +157,8 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
         return -1;
       }
 
+      data->s2k_count = 16 + (data->s2k_fmt.count & 15);
+      data->s2k_count = data->s2k_count << ((data->s2k_fmt.count >> 4) + 6);
       break;
     case SYM_KEY_ENC_MDC_DATA:
       debug("Symmetrically encrypted data and mdc packet. Reading 0x%x bytes.\n", length);

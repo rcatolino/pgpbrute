@@ -124,6 +124,15 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  printf("Symmetric OpenPGP file.\n");
+  printf("\tS2K hash function %s.\n", hash_str[pdata.s2k_fmt.hash_alg]);
+  printf("\tS2K count %u\n", pdata.s2k_count);
+  printf("\tS2K salt 0x%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx\n",
+         pdata.s2k_fmt.salt[0], pdata.s2k_fmt.salt[1], pdata.s2k_fmt.salt[2],
+         pdata.s2k_fmt.salt[3], pdata.s2k_fmt.salt[4], pdata.s2k_fmt.salt[5],
+         pdata.s2k_fmt.salt[6], pdata.s2k_fmt.salt[7]);
+  printf("\tSymmetric algorithm %s.\n", algo_str[pdata.key_fmt.algorithm]);
+
   if ((workers = malloc(opt_fork*sizeof(pid_t))) == NULL) {
     perror("Error in malloc ");
     return -1;

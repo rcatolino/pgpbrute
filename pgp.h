@@ -5,6 +5,10 @@
 #include <stdio.h>
 
 #define ENC_BUFFER_SIZE 8196
+
+extern char *hash_str[];
+extern char *algo_str[];
+
 struct sym_enc_key {
   uint8_t version;
   uint8_t algorithm;
@@ -13,7 +17,7 @@ struct sym_enc_key {
 
 struct s2k {
   uint8_t hash_alg;
-  char salt[8];
+  unsigned char salt[8];
   uint8_t count;
 };
 
@@ -21,6 +25,7 @@ struct s2k {
 struct pgp_data {
   struct sym_enc_key key_fmt;
   struct s2k s2k_fmt;
+  uint32_t s2k_count;
   char enc_data[ENC_BUFFER_SIZE];
 };
 
