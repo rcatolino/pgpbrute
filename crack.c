@@ -171,7 +171,10 @@ static void terminate(pid_t *workers, mqd_t queue) {
 
 static void cleanup(pid_t *workers, mqd_t queue) {
   int child_ret;
-  mq_timedsend(queue, "", 1, 1, &(struct timespec){0, 0});
+  for (int i = 0; i<opt_fork; i++) {
+    debug("Sending termination message.\n");
+    mq_timedsend(queue, "", 1, 1, &(struct timespec){time(NULL)+2, 0});
+  }
   for (int i = 0; i<opt_fork && workers[i] != 0; i++) {
     if (waitpid(workers[i], &child_ret, 0) == -1 && errno == EINTR) {
       i--;

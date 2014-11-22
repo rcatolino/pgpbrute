@@ -6,7 +6,7 @@ LDFLAGS:=-Wall -g
 
 INCLUDES:=-I/usr/include/glib-2.0/ -I/usr/lib/glib-2.0/include/
 
-DEFINES:=-D DEBUG
+DEFINES:=-D NODEBUG
 
 EXE:=crack
 

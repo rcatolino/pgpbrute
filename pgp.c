@@ -149,7 +149,7 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
       }
 
       if (data->key_fmt.algorithm == 5 || data->key_fmt.algorithm == 6) {
-        fprintf(stderr, "Error, unsupported reserved algorithm number : %hhu.\n",
+        fprintf(stderr, "Error, unsupported reserved cipher algorithm number : %hhu.\n",
                 data->key_fmt.algorithm);
         return -1;
       }
@@ -165,10 +165,10 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
         return -1;
       }
 
-      if (data->s2k_fmt.algorithm == 0 || data->key_fmt.algorithm == 4 ||
-          data->key_fmt.algorithm == 5 || data->key_fmt.algorithm == 6 ||
-          data->key_fmt.algorithm == 7) {
-        fprintf(stderr, "Error, unsupported reserved algorithm number : %hhu.\n",
+      if (data->s2k_fmt.algorithm == 0 || data->s2k_fmt.algorithm == 4 ||
+          data->s2k_fmt.algorithm == 5 || data->s2k_fmt.algorithm == 6 ||
+          data->s2k_fmt.algorithm == 7) {
+        fprintf(stderr, "Error, unsupported reserved hash algorithm number : %hhu.\n",
                 data->key_fmt.algorithm);
         return -1;
       }
