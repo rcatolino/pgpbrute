@@ -286,6 +286,10 @@ int main(int argc, char *argv[]) {
       buffer[len] = '\0';
     }
 
+    if (len == 0) {
+      continue;
+    }
+
     debug("sending passphrase %s.\n", buffer);
     tried++;
     mq_send(queue, buffer, len+1, 1);
