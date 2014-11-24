@@ -72,7 +72,7 @@ static int init_options(int argc, char *argv[], struct pgp_data *pdata) {
   return parse_pgp(pgp, pdata);
 }
 
-static int worker(struct pgp_data *pdata) {
+static int worker(struct pgp_data *pdata, const char *file) {
   mqd_t queue;
   size_t buff_size = 256;
   char keybuffer[MAX_KEY_LEN];
@@ -80,6 +80,7 @@ static int worker(struct pgp_data *pdata) {
   int blocksize = algos[pdata->key_fmt.algorithm].blocksize;
   size_t keysize = algos[pdata->key_fmt.algorithm].keysize;
   unsigned char output_buffer[2*blocksize];
+  char command[1024];
   gpg_error_t gerror;
   gcry_cipher_hd_t cipher;
 
@@ -157,8 +158,12 @@ static int worker(struct pgp_data *pdata) {
         output_buffer[blocksize-1] != output_buffer[blocksize+1]) {
       debug("bad passphrase\n");
     } else {
-      printf("FOUND PASSPHRASE : %s\n", buffer);
-      return 1;
+      sprintf(command, "gpg --decrypt --batch --passphrase %s --output %s-%s.clear %s", buffer, file, buffer, file);
+      printf("Found candidate : %s\n", buffer);
+      if (system(command) == 0) {
+        printf("FOUND PASSPHRASE : %s\n", buffer);
+        return 1;
+      }
     }
   }
 
@@ -236,7 +241,7 @@ int main(int argc, char *argv[]) {
     pid_t ret = fork();
     switch(ret) {
       case 0:
-        exit(worker(&pdata));
+        exit(worker(&pdata, argv[1]));
       case -1:
         perror("Error in fork ");
         terminate(workers, queue);
@@ -273,9 +278,9 @@ int main(int argc, char *argv[]) {
       len--;
       buffer[len] = '\0';
     }
+
     debug("sending passphrase %s.\n", buffer);
     tried++;
-
     mq_send(queue, buffer, len+1, 1);
   }
 

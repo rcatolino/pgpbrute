@@ -26,6 +26,7 @@
 
 #define SYM_KEY_ENC_KEY 3
 #define SYM_KEY_ENC_DATA 9
+#define OBSOLETE_LITERAL 10
 #define LITERAL 11
 #define SYM_KEY_ENC_MDC_DATA 18
 
@@ -123,8 +124,10 @@ int parse_packets(FILE *pgp, uint8_t head, struct pgp_data *data) {
   }
 
   switch (tag) {
+    case OBSOLETE_LITERAL:
     case LITERAL:
-      debug("Literal data packet, skipping.\n");
+      debug("Literal data packet of 0x%x bytes, skipping.\n", length);
+      fseek(pgp, length, SEEK_CUR);
       break;
     case SYM_KEY_ENC_KEY:
       debug("Symmetrically encrypted key packet, reading 0x%x bytes, %lu, %lu\n",
@@ -225,7 +228,7 @@ int parse_pgp(FILE *pgp, struct pgp_data *data) {
 
     debug("header byte : %x\n", head);
     if ((head & B7) == 0) {
-      fprintf(stderr, "Error, not an OpenPGP file");
+      fprintf(stderr, "Error, not an OpenPGP file\n");
       return -1;
     }
 
