@@ -80,7 +80,7 @@ static int worker(struct pgp_data *pdata, const char *file) {
   int blocksize = algos[pdata->key_fmt.algorithm].blocksize;
   size_t keysize = algos[pdata->key_fmt.algorithm].keysize;
   unsigned char output_buffer[2*blocksize];
-  char command[1024];
+  char gpg_output[1024];
   gpg_error_t gerror;
   gcry_cipher_hd_t cipher;
 
@@ -158,11 +158,18 @@ static int worker(struct pgp_data *pdata, const char *file) {
         output_buffer[blocksize-1] != output_buffer[blocksize+1]) {
       debug("bad passphrase\n");
     } else {
-      sprintf(command, "gpg --decrypt --batch --passphrase %s --output %s-%s.clear %s", buffer, file, buffer, file);
+      pid_t gpg_proc = 0;
+      sprintf(gpg_output, "%s-%s.clear", file, buffer);
       printf("Found candidate : %s\n", buffer);
-      if (system(command) == 0) {
-        printf("FOUND PASSPHRASE : %s\n", buffer);
-        return 1;
+      if ((gpg_proc = fork()) == 0) {
+        execlp("gpg", "--decrypt", "--batch", "--passphrase", buffer, "--output", gpg_output, file, NULL);
+      } else {
+        int stat;
+        waitpid(gpg_proc, &stat, 0);
+        if (WIFEXITED(stat) && WEXITSTATUS(stat) == 0) {
+          printf("FOUND PASSPHRASE : %s\n", buffer);
+          return 1;
+        }
       }
     }
   }
